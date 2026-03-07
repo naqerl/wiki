@@ -77,6 +77,12 @@ type ArticleHeading struct {
 	Text  string
 }
 
+type ArticleHeadingNode struct {
+	ID       string
+	Text     string
+	Children []*ArticleHeadingNode
+}
+
 func (h *handler) index(w http.ResponseWriter, r *http.Request) {
 	tree, err := h.buildTree(".")
 	if err != nil {
@@ -109,14 +115,15 @@ func (h *handler) article(w http.ResponseWriter, r *http.Request) {
 	// Convert markdown to HTML
 	html := templates.RenderMarkdown(content)
 	headings := extractHeadingsFromHTML(string(html))
+	headingTree := buildHeadingTree(headings)
 
 	// Get display name (without .md extension)
 	displayName := strings.TrimSuffix(path, ".md")
 
 	data := map[string]any{
-		"Title":    displayName,
-		"Content":  html,
-		"Headings": headings,
+		"Title":       displayName,
+		"Content":     html,
+		"HeadingTree": headingTree,
 	}
 	h.t.RenderHTTP(w, r, "article", data)
 }
@@ -380,6 +387,42 @@ func extractHeadingsFromHTML(renderedHTML string) []ArticleHeading {
 	}
 
 	return headings
+}
+
+func buildHeadingTree(headings []ArticleHeading) []*ArticleHeadingNode {
+	if len(headings) == 0 {
+		return nil
+	}
+
+	type stackEntry struct {
+		level int
+		node  *ArticleHeadingNode
+	}
+
+	root := &ArticleHeadingNode{}
+	stack := []stackEntry{{level: 1, node: root}}
+
+	for _, h := range headings {
+		if h.Level < 2 || h.Level > 6 {
+			continue
+		}
+
+		n := &ArticleHeadingNode{
+			ID:       h.ID,
+			Text:     h.Text,
+			Children: make([]*ArticleHeadingNode, 0),
+		}
+
+		for len(stack) > 1 && stack[len(stack)-1].level >= h.Level {
+			stack = stack[:len(stack)-1]
+		}
+
+		parent := stack[len(stack)-1].node
+		parent.Children = append(parent.Children, n)
+		stack = append(stack, stackEntry{level: h.Level, node: n})
+	}
+
+	return root.Children
 }
 
 func (h *handler) buildTree(dir string) (*TreeNode, error) {

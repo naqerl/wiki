@@ -19,15 +19,11 @@
         <nav aria-label="Breadcrumb">
             <a href="/">← Index</a>
         </nav>
-        {{ if .Headings }}
+        {{ if .HeadingTree }}
         <nav aria-label="Article sections">
             <h2>On this page</h2>
             <ul>
-                {{ range .Headings }}
-                <li>
-                    <a href="#{{ .ID }}">{{ .Text }}</a>
-                </li>
-                {{ end }}
+                {{ template "heading-node" .HeadingTree }}
             </ul>
         </nav>
         {{ end }}
@@ -37,4 +33,17 @@
     </main>
 </body>
 </html>
+{{end}}
+
+{{define "heading-node"}}
+{{ range . }}
+<li>
+    <a href="#{{ .ID }}">{{ .Text }}</a>
+    {{ if .Children }}
+    <ul>
+        {{ template "heading-node" .Children }}
+    </ul>
+    {{ end }}
+</li>
+{{ end }}
 {{end}}
