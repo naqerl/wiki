@@ -1,0 +1,15 @@
+[Unit]
+Description=Wiki service
+After=network.target
+
+[Service]
+Type=simple
+Environment=WIKI_PORT=8080
+Environment=WIKI_CONTENT=/var/lib/wiki/content
+EnvironmentFile=-/etc/env/wiki.env
+ExecStart=/usr/bin/wiki -port=${WIKI_PORT} -content=${WIKI_CONTENT}
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

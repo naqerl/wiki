@@ -12,7 +12,7 @@
             <h1>{{ .Title }}</h1>
         </header>
         <section aria-label="Search">
-            <input id="search-input" type="search" placeholder="Search docs..." autocomplete="off">
+            <input id="search-input" type="search" placeholder="search..." autocomplete="off">
             <p id="search-index-info" aria-live="polite"></p>
             <p id="search-message" aria-live="polite"></p>
         </section>
@@ -67,7 +67,7 @@
                 this.field('body');
                 docs.forEach((doc) => this.add(doc));
             });
-            setSearchPlaceholder('Search docs...');
+            setSearchPlaceholder('search...');
         };
 
         const scheduleBuild = () => {
@@ -271,7 +271,7 @@
             if (!query) {
                 showAllTree();
                 clearMatchDetails();
-                setSearchPlaceholder(index ? 'Search docs...' : 'Loading search index...');
+                setSearchPlaceholder(index ? 'search...' : 'Loading search index...');
                 setSearchMessage('');
                 return;
             }
