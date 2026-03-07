@@ -1,0 +1,28 @@
+{{define "article"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .Title }}</title>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: false });
+        document.querySelectorAll('code.language-mermaid').forEach(el => {
+            el.parentElement.outerHTML = `<pre class="mermaid">${el.textContent}</pre>`;
+        });
+        mermaid.init();
+    </script>
+</head>
+<body>
+    <main>
+        <nav aria-label="Breadcrumb">
+            <a href="/">← Index</a>
+        </nav>
+        <article>
+            {{ .Content }}
+        </article>
+    </main>
+</body>
+</html>
+{{end}}
