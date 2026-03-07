@@ -15,7 +15,6 @@
             <label for="search-input">Search</label>
             <input id="search-input" type="search" placeholder="Search docs..." autocomplete="off">
             <p id="search-message" aria-live="polite"></p>
-            <ul id="search-results"></ul>
         </section>
         <nav aria-label="Wiki articles">
             {{ template "tree-node" .Tree }}
@@ -25,7 +24,7 @@
     <script>
         const input = document.getElementById('search-input');
         const message = document.getElementById('search-message');
-        const results = document.getElementById('search-results');
+        const treeNav = document.querySelector('nav[aria-label="Wiki articles"]');
         const lunr = window.lunr;
         let docs = [];
         let docsByID = new Map();
@@ -38,6 +37,22 @@
         const setSearchMessage = (text) => {
             message.textContent = text || '';
         };
+
+        const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const escapeHTML = (s) =>
+            s
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+
+        const toTerms = (query) =>
+            query
+                .toLowerCase()
+                .split(/\s+/)
+                .map((s) => s.trim())
+                .filter(Boolean);
 
         const buildIndex = () => {
             index = lunr(function () {
@@ -58,39 +73,172 @@
             setTimeout(buildIndex, 0);
         };
 
-        const snippetFromChunk = (body) => {
-            const source = body.replace(/\s+/g, ' ').trim();
-            if (!source) return '';
-            const limit = 180;
-            if (source.length <= limit) return source;
-            return `${source.slice(0, limit).trim()}...`;
+        const pathFromURL = (url) => {
+            const hash = url.indexOf('#');
+            const raw = hash >= 0 ? url.slice(0, hash) : url;
+            return raw.startsWith('/') ? raw.slice(1) : raw;
         };
 
-        const renderResults = (items) => {
-            results.innerHTML = '';
-            if (items.length === 0) {
+        const showAllTree = () => {
+            treeNav.querySelectorAll('dt, dd').forEach((el) => {
+                el.style.display = '';
+            });
+        };
+
+        const clearMatchDetails = () => {
+            treeNav.querySelectorAll('dd.search-hit-container').forEach((el) => el.remove());
+        };
+
+        const filterTree = (matchedPaths) => {
+            const walkDL = (dl) => {
+                const nodes = Array.from(dl.children);
+                let anyVisible = false;
+
+                for (let i = 0; i < nodes.length; i++) {
+                    const dt = nodes[i];
+                    if (dt.tagName !== 'DT') {
+                        continue;
+                    }
+
+                    let dd = null;
+                    if (i + 1 < nodes.length && nodes[i + 1].tagName === 'DD') {
+                        dd = nodes[i + 1];
+                    }
+
+                    if (dt.dataset.kind === 'dir') {
+                        let childVisible = false;
+                        if (dd) {
+                            const childDL = dd.querySelector(':scope > dl');
+                            childVisible = childDL ? walkDL(childDL) : false;
+                            dd.style.display = childVisible ? '' : 'none';
+                        }
+                        dt.style.display = childVisible ? '' : 'none';
+                        anyVisible = anyVisible || childVisible;
+                    } else {
+                        const path = dt.dataset.path || '';
+                        const visible = matchedPaths.has(path);
+                        dt.style.display = visible ? '' : 'none';
+                        if (dd) {
+                            if (dd.classList.contains('search-hit-container')) {
+                                dd.style.display = visible ? '' : 'none';
+                            } else {
+                                dd.style.display = 'none';
+                            }
+                        }
+                        anyVisible = anyVisible || visible;
+                    }
+                }
+                return anyVisible;
+            };
+
+            const rootDL = treeNav.querySelector(':scope > dl');
+            if (!rootDL) {
+                return 0;
+            }
+            walkDL(rootDL);
+            return matchedPaths.size;
+        };
+
+        const buildSnippet = (body, query) => {
+            const source = (body || '').replace(/\s+/g, ' ').trim();
+            if (!source) {
+                return '';
+            }
+            const lower = source.toLowerCase();
+            const terms = toTerms(query);
+            let hit = -1;
+            for (const term of terms) {
+                hit = lower.indexOf(term);
+                if (hit >= 0) {
+                    break;
+                }
+            }
+            if (hit < 0) {
+                const short = source.slice(0, 120).trim();
+                return short.length < source.length ? `${short}...` : short;
+            }
+            const start = Math.max(0, hit - 45);
+            const end = Math.min(source.length, hit + 90);
+            let out = source.slice(start, end).trim();
+            if (start > 0) out = `...${out}`;
+            if (end < source.length) out = `${out}...`;
+            return out;
+        };
+
+        const highlightTerms = (text, query) => {
+            let out = escapeHTML(text);
+            for (const term of toTerms(query)) {
+                const re = new RegExp(`(${escapeRegExp(term)})`, 'ig');
+                out = out.replace(re, '<mark>$1</mark>');
+            }
+            return out;
+        };
+
+        const renderMatchDetails = (pathHits, query) => {
+            clearMatchDetails();
+            pathHits.forEach((hits, path) => {
+                const link = treeNav.querySelector(`a[data-file-path="${path}"]`);
+                if (!link) return;
+                const dt = link.closest('dt');
+                if (!dt) return;
+
+                const dd = document.createElement('dd');
+                dd.className = 'search-hit-container';
+                const ul = document.createElement('ul');
+
+                const topHits = hits.slice(0, 2);
+                topHits.forEach((hit) => {
+                    const li = document.createElement('li');
+                    const anchor = document.createElement('a');
+                    anchor.href = hit.url;
+                    const section = hit.section && hit.section !== hit.title
+                        ? `${hit.section}: `
+                        : '';
+                    const snippet = buildSnippet(hit.body, query);
+                    anchor.innerHTML = `${highlightTerms(section, query)}${highlightTerms(snippet, query)}`;
+                    li.appendChild(anchor);
+                    ul.appendChild(li);
+                });
+
+                dd.appendChild(ul);
+                dt.insertAdjacentElement('afterend', dd);
+            });
+        };
+
+        const applySearchToTree = (items, query) => {
+            const matchedPaths = new Set();
+            const pathHits = new Map();
+            items.forEach((item) => {
+                const doc = docsByID.get(item.ref);
+                if (!doc) {
+                    return;
+                }
+                const path = pathFromURL(doc.url);
+                matchedPaths.add(path);
+                if (!pathHits.has(path)) {
+                    pathHits.set(path, []);
+                }
+                pathHits.get(path).push({
+                    url: doc.url,
+                    title: doc.title,
+                    section: doc.section,
+                    body: doc.body,
+                    score: item.score
+                });
+            });
+
+            pathHits.forEach((hits) => hits.sort((a, b) => b.score - a.score));
+
+            const matchedCount = filterTree(matchedPaths);
+            if (matchedCount === 0) {
+                clearMatchDetails();
                 setSearchPlaceholder('No matches');
                 setSearchMessage('No results found.');
                 return;
             }
-            setSearchPlaceholder(`${items.length} result(s)`);
+            renderMatchDetails(pathHits, query);
+            setSearchPlaceholder(`${matchedCount} page(s) matched`);
             setSearchMessage('');
-
-            items.slice(0, 20).forEach((item) => {
-                const doc = docsByID.get(item.ref);
-                if (!doc) return;
-                const li = document.createElement('li');
-                const a = document.createElement('a');
-                a.href = doc.url;
-                a.textContent = doc.section && doc.section !== doc.title
-                    ? `${doc.title} > ${doc.section}`
-                    : doc.title;
-                const preview = document.createElement('p');
-                preview.textContent = snippetFromChunk(doc.body || '');
-                li.appendChild(a);
-                li.appendChild(preview);
-                results.appendChild(li);
-            });
         };
 
         window.addEventListener('DOMContentLoaded', async () => {
@@ -112,7 +260,8 @@
         input.addEventListener('input', () => {
             const query = input.value.trim();
             if (!query) {
-                results.innerHTML = '';
+                showAllTree();
+                clearMatchDetails();
                 setSearchPlaceholder(index ? 'Search docs...' : 'Loading search index...');
                 setSearchMessage('');
                 return;
@@ -122,7 +271,7 @@
                 setSearchMessage('');
                 return;
             }
-            renderResults(index.search(query));
+            applySearchToTree(index.search(query), query);
         });
     </script>
 </body>
@@ -133,11 +282,11 @@
 {{ if .Children }}
 <dl>
     {{ range .Children }}
-    <dt>
+    <dt data-kind="{{if .IsDir}}dir{{else}}file{{end}}"{{if not .IsDir}} data-path="{{ .Path }}"{{end}}>
         {{ if .IsDir }}
         <strong>{{ .Name }}</strong>
         {{ else }}
-        <a href="/{{ .Path }}">{{ .Name }}</a>
+        <a href="/{{ .Path }}" data-file-path="{{ .Path }}">{{ .Name }}</a>
         {{ end }}
     </dt>
     {{ if .Children }}
