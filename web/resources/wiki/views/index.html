@@ -1,0 +1,159 @@
+{{define "index"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .Title }}</title>
+</head>
+<body>
+    <main>
+        <header>
+            <h1>{{ .Title }}</h1>
+        </header>
+        <section aria-label="Search">
+            <label for="search-input">Search</label>
+            <input id="search-input" type="search" placeholder="Search docs..." autocomplete="off">
+            <ul id="search-results"></ul>
+        </section>
+        <nav aria-label="Wiki articles">
+            {{ template "tree-node" .Tree }}
+        </nav>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/lunr@2.3.9/lunr.min.js"></script>
+    <script>
+        const input = document.getElementById('search-input');
+        const results = document.getElementById('search-results');
+        const lunr = window.lunr;
+        let docs = [];
+        let index = null;
+
+        const setSearchPlaceholder = (text) => {
+            input.placeholder = text;
+        };
+
+        const buildIndex = () => {
+            index = lunr(function () {
+                this.ref('id');
+                this.field('title', { boost: 10 });
+                this.field('body');
+                docs.forEach((doc) => this.add(doc));
+            });
+            setSearchPlaceholder('Search docs...');
+        };
+
+        const scheduleBuild = () => {
+            if ('requestIdleCallback' in window) {
+                window.requestIdleCallback(buildIndex);
+                return;
+            }
+            setTimeout(buildIndex, 0);
+        };
+
+        const toTerms = (query) =>
+            query
+                .toLowerCase()
+                .split(/\s+/)
+                .map((s) => s.trim())
+                .filter(Boolean);
+
+        const extractSnippet = (body, query) => {
+            const source = body.replace(/\s+/g, ' ').trim();
+            if (!source) return '';
+
+            const lower = source.toLowerCase();
+            const terms = toTerms(query);
+            let hit = -1;
+
+            for (const term of terms) {
+                hit = lower.indexOf(term);
+                if (hit >= 0) break;
+            }
+
+            if (hit < 0) {
+                const prefix = source.slice(0, 140).trim();
+                return prefix.length < source.length ? `${prefix}...` : prefix;
+            }
+
+            const start = Math.max(0, hit - 55);
+            const end = Math.min(source.length, hit + 85);
+            let snippet = source.slice(start, end).trim();
+            if (start > 0) snippet = `...${snippet}`;
+            if (end < source.length) snippet = `${snippet}...`;
+            return snippet;
+        };
+
+        const renderResults = (items) => {
+            results.innerHTML = '';
+            if (items.length === 0) {
+                setSearchPlaceholder('No matches');
+                return;
+            }
+            setSearchPlaceholder(`${items.length} result(s)`);
+
+            items.slice(0, 20).forEach((item) => {
+                const doc = docs.find((d) => d.id === item.ref);
+                if (!doc) return;
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = doc.url;
+                a.textContent = doc.title;
+                const preview = document.createElement('p');
+                preview.textContent = extractSnippet(doc.body || '', input.value.trim());
+                li.appendChild(a);
+                li.appendChild(preview);
+                results.appendChild(li);
+            });
+        };
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            setSearchPlaceholder('Loading search index...');
+            try {
+                const resp = await fetch('/search-index.json', { cache: 'no-store' });
+                docs = await resp.json();
+                setSearchPlaceholder(`Loaded ${docs.length} docs. Building index...`);
+                scheduleBuild();
+            } catch (err) {
+                setSearchPlaceholder('Search unavailable');
+                console.error(err);
+            }
+        });
+
+        input.addEventListener('input', () => {
+            const query = input.value.trim();
+            if (!query) {
+                results.innerHTML = '';
+                setSearchPlaceholder(index ? 'Search docs...' : 'Loading search index...');
+                return;
+            }
+            if (!index) {
+                setSearchPlaceholder('Index is still building...');
+                return;
+            }
+            renderResults(index.search(query));
+        });
+    </script>
+</body>
+</html>
+{{end}}
+
+{{define "tree-node"}}
+{{ if .Children }}
+<dl>
+    {{ range .Children }}
+    <dt>
+        {{ if .IsDir }}
+        <strong>{{ .Name }}</strong>
+        {{ else }}
+        <a href="/{{ .Path }}">{{ .Name }}</a>
+        {{ end }}
+    </dt>
+    {{ if .Children }}
+    <dd>
+        {{ template "tree-node" . }}
+    </dd>
+    {{ end }}
+    {{ end }}
+</dl>
+{{ end }}
+{{end}}

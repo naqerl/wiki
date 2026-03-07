@@ -19,6 +19,18 @@
         <nav aria-label="Breadcrumb">
             <a href="/">← Index</a>
         </nav>
+        {{ if .Headings }}
+        <nav aria-label="Article sections">
+            <h2>On this page</h2>
+            <ul>
+                {{ range .Headings }}
+                <li>
+                    <a href="#{{ .ID }}">{{ .Text }}</a>
+                </li>
+                {{ end }}
+            </ul>
+        </nav>
+        {{ end }}
         <article>
             {{ .Content }}
         </article>
