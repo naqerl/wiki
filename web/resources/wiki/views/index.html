@@ -14,6 +14,7 @@
         <section aria-label="Search">
             <label for="search-input">Search</label>
             <input id="search-input" type="search" placeholder="Search docs..." autocomplete="off">
+            <p id="search-message" aria-live="polite"></p>
             <ul id="search-results"></ul>
         </section>
         <nav aria-label="Wiki articles">
@@ -23,19 +24,26 @@
     <script src="https://cdn.jsdelivr.net/npm/lunr@2.3.9/lunr.min.js"></script>
     <script>
         const input = document.getElementById('search-input');
+        const message = document.getElementById('search-message');
         const results = document.getElementById('search-results');
         const lunr = window.lunr;
         let docs = [];
+        let docsByID = new Map();
         let index = null;
 
         const setSearchPlaceholder = (text) => {
             input.placeholder = text;
         };
 
+        const setSearchMessage = (text) => {
+            message.textContent = text || '';
+        };
+
         const buildIndex = () => {
             index = lunr(function () {
                 this.ref('id');
                 this.field('title', { boost: 10 });
+                this.field('section', { boost: 6 });
                 this.field('body');
                 docs.forEach((doc) => this.add(doc));
             });
@@ -50,56 +58,35 @@
             setTimeout(buildIndex, 0);
         };
 
-        const toTerms = (query) =>
-            query
-                .toLowerCase()
-                .split(/\s+/)
-                .map((s) => s.trim())
-                .filter(Boolean);
-
-        const extractSnippet = (body, query) => {
+        const snippetFromChunk = (body) => {
             const source = body.replace(/\s+/g, ' ').trim();
             if (!source) return '';
-
-            const lower = source.toLowerCase();
-            const terms = toTerms(query);
-            let hit = -1;
-
-            for (const term of terms) {
-                hit = lower.indexOf(term);
-                if (hit >= 0) break;
-            }
-
-            if (hit < 0) {
-                const prefix = source.slice(0, 140).trim();
-                return prefix.length < source.length ? `${prefix}...` : prefix;
-            }
-
-            const start = Math.max(0, hit - 55);
-            const end = Math.min(source.length, hit + 85);
-            let snippet = source.slice(start, end).trim();
-            if (start > 0) snippet = `...${snippet}`;
-            if (end < source.length) snippet = `${snippet}...`;
-            return snippet;
+            const limit = 180;
+            if (source.length <= limit) return source;
+            return `${source.slice(0, limit).trim()}...`;
         };
 
         const renderResults = (items) => {
             results.innerHTML = '';
             if (items.length === 0) {
                 setSearchPlaceholder('No matches');
+                setSearchMessage('No results found.');
                 return;
             }
             setSearchPlaceholder(`${items.length} result(s)`);
+            setSearchMessage('');
 
             items.slice(0, 20).forEach((item) => {
-                const doc = docs.find((d) => d.id === item.ref);
+                const doc = docsByID.get(item.ref);
                 if (!doc) return;
                 const li = document.createElement('li');
                 const a = document.createElement('a');
                 a.href = doc.url;
-                a.textContent = doc.title;
+                a.textContent = doc.section && doc.section !== doc.title
+                    ? `${doc.title} > ${doc.section}`
+                    : doc.title;
                 const preview = document.createElement('p');
-                preview.textContent = extractSnippet(doc.body || '', input.value.trim());
+                preview.textContent = snippetFromChunk(doc.body || '');
                 li.appendChild(a);
                 li.appendChild(preview);
                 results.appendChild(li);
@@ -108,13 +95,16 @@
 
         window.addEventListener('DOMContentLoaded', async () => {
             setSearchPlaceholder('Loading search index...');
+            setSearchMessage('');
             try {
                 const resp = await fetch('/search-index.json', { cache: 'no-store' });
                 docs = await resp.json();
+                docsByID = new Map(docs.map((doc) => [doc.id, doc]));
                 setSearchPlaceholder(`Loaded ${docs.length} docs. Building index...`);
                 scheduleBuild();
             } catch (err) {
                 setSearchPlaceholder('Search unavailable');
+                setSearchMessage('Search is currently unavailable.');
                 console.error(err);
             }
         });
@@ -124,10 +114,12 @@
             if (!query) {
                 results.innerHTML = '';
                 setSearchPlaceholder(index ? 'Search docs...' : 'Loading search index...');
+                setSearchMessage('');
                 return;
             }
             if (!index) {
                 setSearchPlaceholder('Index is still building...');
+                setSearchMessage('');
                 return;
             }
             renderResults(index.search(query));

@@ -15,6 +15,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gomarkdown/markdown/ast"
+	"github.com/gomarkdown/markdown/parser"
+
 	"wiki/web/templates"
 )
 
@@ -28,10 +31,11 @@ type handler struct {
 }
 
 type SearchDoc struct {
-	ID    string `json:"id"`
-	URL   string `json:"url"`
-	Title string `json:"title"`
-	Body  string `json:"body"`
+	ID      string `json:"id"`
+	URL     string `json:"url"`
+	Title   string `json:"title"`
+	Section string `json:"section"`
+	Body    string `json:"body"`
 }
 
 type searchSnapshot struct {
@@ -43,7 +47,6 @@ type searchSnapshot struct {
 type searchCache struct {
 	mu       sync.RWMutex
 	snapshot searchSnapshot
-	docs     []SearchDoc
 	json     []byte
 }
 
@@ -143,7 +146,7 @@ func (h *handler) searchIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.setCachedSearchJSON(snapshot, docs, payload)
+	h.setCachedSearchJSON(snapshot, payload)
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	_, _ = w.Write(payload)
@@ -159,11 +162,10 @@ func (h *handler) getCachedSearchJSON(snapshot searchSnapshot) ([]byte, bool) {
 	return nil, false
 }
 
-func (h *handler) setCachedSearchJSON(snapshot searchSnapshot, docs []SearchDoc, payload []byte) {
+func (h *handler) setCachedSearchJSON(snapshot searchSnapshot, payload []byte) {
 	h.searchCache.mu.Lock()
 	defer h.searchCache.mu.Unlock()
 	h.searchCache.snapshot = snapshot
-	h.searchCache.docs = docs
 	h.searchCache.json = payload
 }
 
@@ -209,13 +211,9 @@ func (h *handler) buildSearchDocs(dir string) ([]SearchDoc, error) {
 			return err
 		}
 
-		title, body := markdownToSearchFields(path, string(raw))
-		docs = append(docs, SearchDoc{
-			ID:    path,
-			URL:   "/" + path,
-			Title: title,
-			Body:  body,
-		})
+		title, _ := markdownToSearchFields(path, string(raw))
+		chunks := buildSearchChunks(path, string(raw), title)
+		docs = append(docs, chunks...)
 
 		return nil
 	})
@@ -247,6 +245,111 @@ func markdownToSearchFields(path, markdown string) (string, string) {
 
 	body := strings.ReplaceAll(markdown, "\r\n", "\n")
 	return title, body
+}
+
+func buildSearchChunks(path, markdown, title string) []SearchDoc {
+	extensions := parser.CommonExtensions | parser.AutoHeadingIDs
+	p := parser.NewWithExtensions(extensions)
+	doc := p.Parse([]byte(markdown))
+
+	chunks := make([]SearchDoc, 0, 16)
+	currentSection := title
+	currentAnchor := ""
+	chunkCount := 0
+
+	appendChunk := func(text string) {
+		plain := normalizeWhitespace(text)
+		if plain == "" {
+			return
+		}
+		chunkCount++
+		url := "/" + path
+		if currentAnchor != "" {
+			url += "#" + currentAnchor
+		}
+		chunks = append(chunks, SearchDoc{
+			ID:      path + "::" + strconv.Itoa(chunkCount),
+			URL:     url,
+			Title:   title,
+			Section: currentSection,
+			Body:    plain,
+		})
+	}
+
+	ast.WalkFunc(doc, func(node ast.Node, entering bool) ast.WalkStatus {
+		if !entering {
+			return ast.GoToNext
+		}
+
+		switch n := node.(type) {
+		case *ast.Heading:
+			if text := extractNodeText(n); text != "" {
+				currentSection = text
+			}
+			if n.HeadingID != "" {
+				currentAnchor = n.HeadingID
+			}
+		case *ast.Paragraph:
+			appendChunk(extractNodeText(n))
+		case *ast.ListItem:
+			if !hasParagraphChild(n) {
+				appendChunk(extractNodeText(n))
+			}
+		}
+		return ast.GoToNext
+	})
+
+	if len(chunks) == 0 {
+		if fallback := normalizeWhitespace(extractNodeText(doc)); fallback != "" {
+			chunks = append(chunks, SearchDoc{
+				ID:      path + "::1",
+				URL:     "/" + path,
+				Title:   title,
+				Section: title,
+				Body:    fallback,
+			})
+		}
+	}
+
+	return chunks
+}
+
+func hasParagraphChild(node ast.Node) bool {
+	for _, child := range node.GetChildren() {
+		if _, ok := child.(*ast.Paragraph); ok {
+			return true
+		}
+	}
+	return false
+}
+
+func extractNodeText(node ast.Node) string {
+	var b strings.Builder
+
+	ast.WalkFunc(node, func(n ast.Node, entering bool) ast.WalkStatus {
+		if !entering {
+			return ast.GoToNext
+		}
+
+		switch n.(type) {
+		case *ast.CodeBlock, *ast.HTMLBlock, *ast.MathBlock:
+			return ast.SkipChildren
+		case *ast.Softbreak, *ast.Hardbreak, *ast.NonBlockingSpace:
+			b.WriteByte(' ')
+			return ast.GoToNext
+		}
+
+		if leaf := n.AsLeaf(); leaf != nil && len(leaf.Literal) > 0 {
+			b.Write(leaf.Literal)
+		}
+		return ast.GoToNext
+	})
+
+	return normalizeWhitespace(b.String())
+}
+
+func normalizeWhitespace(s string) string {
+	return strings.Join(strings.Fields(s), " ")
 }
 
 func extractHeadingsFromHTML(renderedHTML string) []ArticleHeading {
