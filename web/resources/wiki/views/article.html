@@ -86,14 +86,11 @@
             </ul>
         </nav>
         {{ end }}
+        {{ if not .LastModified.IsZero }}
+        <p><small>Last updated: {{ .LastModified.Format "Jan 2, 2006" }}</small></p>
+        {{ end }}
         <article>
             {{ .Content }}
-            {{ if .LastModified.IsZero }}
-            {{ else }}
-            <footer>
-                <p>Last updated: {{ .LastModified.Format "Jan 2, 2006" }}</p>
-            </footer>
-            {{ end }}
         </article>
     </main>
 </body>
