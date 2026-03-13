@@ -5,6 +5,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ .Title }}</title>
+    <link id="wiki-base-css" rel="stylesheet" href="/static/css/base.css">
+    <script>
+        // Load theme immediately to prevent flash
+        (function() {
+            const THEMES = {
+                'default-light': 'theme-default-light.css',
+                'default-dark': 'theme-default-dark.css',
+                'sepia': 'theme-sepia.css',
+                'retro': 'theme-retro.css'
+            };
+            const STORAGE_KEY = 'wiki-theme';
+            let themeFile = THEMES['default-light'];
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored && THEMES[stored]) {
+                    themeFile = THEMES[stored];
+                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    themeFile = THEMES['default-dark'];
+                }
+            } catch (e) {}
+            document.write('<link id="wiki-theme-css" rel="stylesheet" href="/static/css/' + themeFile + '">');
+        })();
+    </script>
+    <script src="/static/js/theme-switcher.js"></script>
 </head>
 <body>
     <main>

@@ -1,0 +1,147 @@
+/* Theme: Retro (Old terminal/computer style) */
+
+:root {
+  /* Colors - Amber monochrome terminal */
+  --color-bg: #0c0c0c;
+  --color-bg-secondary: #1a1a1a;
+  --color-bg-tertiary: #262626;
+  --color-text: #ffb000;
+  --color-text-secondary: #cc8c00;
+  --color-text-muted: #996900;
+  --color-link: #ffb000;
+  --color-link-visited: #ff8000;
+  --color-link-hover: #ffcc00;
+  --color-border: #ffb000;
+  --color-border-strong: #ffcc00;
+  --color-accent: #ffb000;
+  --color-accent-bg: #332200;
+  --color-mark-bg: #ffcc00;
+  --color-mark-text: #0c0c0c;
+  --color-code-bg: #1a1a1a;
+  --color-code-text: #ffb000;
+  --color-pre-bg: #0c0c0c;
+  --color-pre-border: #ffb000;
+
+  /* Typography - Monospace terminal font */
+  --font-family-base: "Courier New", "Courier", "Lucida Console", monospace;
+  --font-family-mono: "Courier New", "Courier", "Lucida Console", monospace;
+  --font-size-base: 16px;
+  --line-height-base: 1.6;
+
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+
+  /* Layout */
+  --max-width: 1200px;
+  --content-width: 800px;
+  --border-radius: 0;
+}
+
+/* Retro terminal specific overrides */
+body {
+  text-shadow: 0 0 5px rgba(255, 176, 0, 0.5);
+}
+
+a {
+  text-decoration: none;
+  border-bottom: 1px dashed var(--color-link);
+}
+
+a:hover {
+  border-bottom-style: solid;
+  text-shadow: 0 0 10px rgba(255, 204, 0, 0.8);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+h2 {
+  border-bottom-width: 2px;
+  border-bottom-style: dashed;
+}
+
+input[type="search"] {
+  background-color: var(--color-bg);
+  border: 2px solid var(--color-border);
+  color: var(--color-text);
+  font-family: var(--font-family-mono);
+}
+
+input[type="search"]:focus {
+  border-color: var(--color-link-hover);
+  box-shadow: 0 0 10px rgba(255, 176, 0, 0.5);
+  outline: none;
+}
+
+input[type="search"]::placeholder {
+  color: var(--color-text-muted);
+}
+
+pre {
+  border: 2px solid var(--color-border);
+  background-color: var(--color-bg);
+}
+
+pre code {
+  background-color: transparent;
+  border: none;
+  padding: 0;
+}
+
+/* Inline code only - not inside pre */
+code:not(pre code) {
+  background-color: transparent;
+  border: 1px solid var(--color-border);
+  padding: 2px 6px;
+}
+
+nav[aria-label="Article sections"],
+nav[aria-label="Wiki articles"],
+section[aria-label="Search"] {
+  border: 2px solid var(--color-border);
+  background-color: var(--color-bg);
+}
+
+table {
+  border: 2px solid var(--color-border);
+}
+
+th, td {
+  border: 1px solid var(--color-border);
+}
+
+th {
+  background-color: var(--color-accent-bg);
+}
+
+.theme-selector select {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  border: 2px solid var(--color-border);
+  font-family: var(--font-family-mono);
+}
+
+/* Scanline effect */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.15),
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}

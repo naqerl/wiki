@@ -24,6 +24,9 @@ import (
 //go:embed views/*.html
 var views embed.FS
 
+//go:embed static/css/*.css static/js/*.js
+var static embed.FS
+
 type handler struct {
         t           templates.Templates
         content     fs.FS
@@ -55,6 +58,12 @@ func InitMux(content fs.FS) *http.ServeMux {
         h := handler{
                 t:       templates.New(views),
                 content: content,
+        }
+
+        // Serve static files (CSS and JS)
+        staticFS, err := fs.Sub(static, "static")
+        if err == nil {
+                m.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
         }
 
         m.HandleFunc("GET /{$}", h.index)

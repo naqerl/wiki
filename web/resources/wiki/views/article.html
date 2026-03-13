@@ -5,9 +5,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ .Title }}</title>
+    <link id="wiki-base-css" rel="stylesheet" href="/static/css/base.css">
+    <script>
+        // Load theme immediately to prevent flash
+        (function() {
+            const THEMES = {
+                'default-light': 'theme-default-light.css',
+                'default-dark': 'theme-default-dark.css',
+                'sepia': 'theme-sepia.css',
+                'retro': 'theme-retro.css'
+            };
+            const STORAGE_KEY = 'wiki-theme';
+            let themeFile = THEMES['default-light'];
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored && THEMES[stored]) {
+                    themeFile = THEMES[stored];
+                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    themeFile = THEMES['default-dark'];
+                }
+            } catch (e) {}
+            document.write('<link id="wiki-theme-css" rel="stylesheet" href="/static/css/' + themeFile + '">');
+        })();
+    </script>
+    <script src="/static/js/theme-switcher.js"></script>
     <script type="module">
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-        mermaid.initialize({ startOnLoad: false });
+        
+        // Determine if we're in dark mode
+        const THEMES = {
+            'default-light': 'light',
+            'default-dark': 'dark',
+            'sepia': 'light',
+            'retro': 'dark'
+        };
+        const STORAGE_KEY = 'wiki-theme';
+        let isDark = false;
+        try {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored && THEMES[stored]) {
+                isDark = THEMES[stored] === 'dark';
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                isDark = true;
+            }
+        } catch (e) {}
+        
+        mermaid.initialize({ 
+            startOnLoad: false,
+            theme: isDark ? 'dark' : 'default'
+        });
         document.querySelectorAll('code.language-mermaid').forEach(el => {
             el.parentElement.outerHTML = `<pre class="mermaid">${el.textContent}</pre>`;
         });

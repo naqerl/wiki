@@ -1,0 +1,42 @@
+/* Theme: Sepia (Easy on the eyes, reading mode) */
+
+:root {
+  /* Colors - Warm sepia palette */
+  --color-bg: #f4ecd8;
+  --color-bg-secondary: #fdf6e3;
+  --color-bg-tertiary: #eee8d5;
+  --color-text: #433422;
+  --color-text-secondary: #586e75;
+  --color-text-muted: #93a1a1;
+  --color-link: #b58900;
+  --color-link-visited: #6c71c4;
+  --color-link-hover: #cb4b16;
+  --color-border: #d3c6aa;
+  --color-border-strong: #b8a88a;
+  --color-accent: #b58900;
+  --color-accent-bg: #eee8d5;
+  --color-mark-bg: #ebcb8b;
+  --color-mark-text: #433422;
+  --color-code-bg: #eee8d5;
+  --color-code-text: #433422;
+  --color-pre-bg: #fdf6e3;
+  --color-pre-border: #d3c6aa;
+
+  /* Typography - Serif for reading */
+  --font-family-base: Georgia, "Times New Roman", serif;
+  --font-family-mono: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, monospace;
+  --font-size-base: 18px;
+  --line-height-base: 1.8;
+
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2.5rem;
+
+  /* Layout */
+  --max-width: 1000px;
+  --content-width: 700px;
+  --border-radius: 4px;
+}
