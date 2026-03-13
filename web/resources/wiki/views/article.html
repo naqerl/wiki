@@ -4,7 +4,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ .Title }}</title>
+    <title>{{ .MetaTitle }}</title>
+    <meta name="description" content="{{ .Description }}">
+    <meta name="robots" content="index,follow">
+    <link rel="canonical" href="{{ .CanonicalURL }}">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="{{ .MetaTitle }}">
+    <meta property="og:description" content="{{ .Description }}">
+    <meta property="og:url" content="{{ .CanonicalURL }}">
+    {{ if not .LastModified.IsZero }}
+    <meta property="article:modified_time" content="{{ .LastModified.UTC.Format "2006-01-02T15:04:05Z07:00" }}">
+    {{ end }}
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{{ .MetaTitle }}">
+    <meta name="twitter:description" content="{{ .Description }}">
     <link id="wiki-base-css" rel="stylesheet" href="/static/css/base.css">
     <script>
         // Load theme immediately to prevent flash
@@ -39,9 +52,10 @@
     </script>
     <script src="/static/js/theme-switcher.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script type="application/ld+json">{{ .StructuredData }}</script>
     <script type="module">
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-        
+
         // Determine if we're in dark mode
         const THEMES = {
             'default-light': 'light',
@@ -59,8 +73,8 @@
                 isDark = true;
             }
         } catch (e) {}
-        
-        mermaid.initialize({ 
+
+        mermaid.initialize({
             startOnLoad: false,
             theme: isDark ? 'dark' : 'default'
         });
@@ -68,7 +82,7 @@
             el.parentElement.outerHTML = `<pre class="mermaid">${el.textContent}</pre>`;
         });
         mermaid.init();
-        
+
         // Initialize syntax highlighting
         hljs.highlightAll();
     </script>
@@ -76,7 +90,11 @@
 <body>
     <main>
         <nav aria-label="Breadcrumb">
-            <a href="/">← Index</a>
+            <a href="/">Index</a>
+            {{ range .Breadcrumbs }}
+            / {{ if .URL }}<a href="{{ .URL }}">{{ .Name }}</a>{{ else }}<span>{{ .Name }}</span>{{ end }}
+            {{ end }}
+            / <span>{{ .Title }}</span>
         </nav>
         {{ if .HeadingTree }}
         <nav aria-label="Article sections">
@@ -92,6 +110,19 @@
         <article>
             {{ .Content }}
         </article>
+        {{ if .Related }}
+        <aside aria-label="Related articles">
+            <h2>More to read</h2>
+            <ul>
+                {{ range .Related }}
+                <li>
+                    <a href="{{ .URL }}">{{ .Title }}</a>
+                    {{ if .Description }}<p>{{ .Description }}</p>{{ end }}
+                </li>
+                {{ end }}
+            </ul>
+        </aside>
+        {{ end }}
     </main>
 </body>
 </html>

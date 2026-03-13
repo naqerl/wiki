@@ -4,7 +4,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ .Title }}</title>
+    <title>{{ .MetaTitle }}</title>
+    <meta name="description" content="{{ .Description }}">
+    <meta name="robots" content="index,follow">
+    <link rel="canonical" href="{{ .CanonicalURL }}">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{{ .MetaTitle }}">
+    <meta property="og:description" content="{{ .Description }}">
+    <meta property="og:url" content="{{ .CanonicalURL }}">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{{ .MetaTitle }}">
+    <meta name="twitter:description" content="{{ .Description }}">
     <link id="wiki-base-css" rel="stylesheet" href="/static/css/base.css">
     <script>
         // Load theme immediately to prevent flash
@@ -30,6 +40,7 @@
     </script>
     <script src="/static/js/theme-switcher.js"></script>
     <link rel="alternate" type="application/rss+xml" title="Wiki RSS Feed" href="{{ .BaseURL }}/rss.xml">
+    <script type="application/ld+json">{{ .StructuredData }}</script>
 </head>
 <body>
     <main>
