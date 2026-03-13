@@ -1,8 +1,10 @@
 package wiki
 
 import (
+        "bytes"
         "embed"
         "encoding/json"
+        "encoding/xml"
         stdhtml "html"
         "io/fs"
         "net/http"
@@ -21,6 +23,31 @@ import (
         "wiki/web/templates"
 )
 
+// RSSFeed represents an RSS 2.0 feed
+type RSSFeed struct {
+        XMLName xml.Name    `xml:"rss"`
+        Version string      `xml:"version,attr"`
+        Channel RSSChannel  `xml:"channel"`
+}
+
+// RSSChannel represents the channel element in RSS
+type RSSChannel struct {
+        Title       string    `xml:"title"`
+        Link        string    `xml:"link"`
+        Description string    `xml:"description"`
+        LastBuildDate string  `xml:"lastBuildDate"`
+        Items       []RSSItem `xml:"item"`
+}
+
+// RSSItem represents an individual item in the RSS feed
+type RSSItem struct {
+        Title       string `xml:"title"`
+        Link        string `xml:"link"`
+        Description string `xml:"description"`
+        PubDate     string `xml:"pubDate"`
+        GUID        string `xml:"guid"`
+}
+
 //go:embed views/*.html
 var views embed.FS
 
@@ -30,6 +57,7 @@ var static embed.FS
 type handler struct {
         t           templates.Templates
         content     fs.FS
+        baseURL     string
         searchCache searchCache
 }
 
@@ -53,11 +81,12 @@ type searchCache struct {
         json     []byte
 }
 
-func InitMux(content fs.FS) *http.ServeMux {
+func InitMux(content fs.FS, baseURL string) *http.ServeMux {
         m := http.NewServeMux()
         h := handler{
                 t:       templates.New(views),
                 content: content,
+                baseURL: baseURL,
         }
 
         // Serve static files (CSS and JS)
@@ -67,6 +96,7 @@ func InitMux(content fs.FS) *http.ServeMux {
         }
 
         m.HandleFunc("GET /{$}", h.index)
+        m.HandleFunc("GET /rss.xml", h.rssFeed)
         m.HandleFunc("GET /search-index.json", h.searchIndex)
         m.HandleFunc("GET /{path...}", h.article)
 
@@ -100,8 +130,9 @@ func (h *handler) index(w http.ResponseWriter, r *http.Request) {
         }
 
         data := map[string]any{
-                "Title": "wiki",
-                "Tree":  tree,
+                "Title":  "wiki",
+                "Tree":   tree,
+                "BaseURL": h.baseURL,
         }
         h.t.RenderHTTP(w, r, "index", data)
 }
@@ -173,6 +204,139 @@ func (h *handler) searchIndex(w http.ResponseWriter, r *http.Request) {
 
         w.Header().Set("Content-Type", "application/json; charset=utf-8")
         _, _ = w.Write(payload)
+}
+
+func (h *handler) rssFeed(w http.ResponseWriter, r *http.Request) {
+	items, err := h.buildRSSItems(".")
+	if err != nil {
+		h.t.RenderError(w, r, "Error", "Failed to build RSS feed", http.StatusInternalServerError)
+		return
+	}
+
+	feed := RSSFeed{
+		Version: "2.0",
+		Channel: RSSChannel{
+			Title:         "wiki",
+			Link:          h.baseURL,
+			Description:   "Wiki RSS Feed",
+			LastBuildDate: time.Now().UTC().Format(time.RFC1123),
+			Items:         items,
+		},
+	}
+
+	var buf bytes.Buffer
+	buf.WriteString(xml.Header)
+	enc := xml.NewEncoder(&buf)
+	enc.Indent("", "  ")
+	if err := enc.Encode(feed); err != nil {
+		h.t.RenderError(w, r, "Error", "Failed to encode RSS feed", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/rss+xml; charset=utf-8")
+	w.Write(buf.Bytes())
+}
+
+func (h *handler) buildRSSItems(dir string) ([]RSSItem, error) {
+	items := make([]RSSItem, 0, 32)
+
+	err := fs.WalkDir(h.content, dir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() || !strings.HasSuffix(path, ".md") {
+			return nil
+		}
+
+		raw, err := fs.ReadFile(h.content, path)
+		if err != nil {
+			return err
+		}
+
+		// Get file modification time
+		var modTime time.Time
+		if info, err := d.Info(); err == nil {
+			modTime = info.ModTime()
+		}
+
+		// Extract title from markdown
+		title := extractTitleFromMarkdown(path, string(raw))
+
+		// Extract description (first paragraph or first 200 chars)
+		description := extractDescriptionFromMarkdown(string(raw))
+
+		// Build URL
+		url := h.baseURL + "/" + strings.TrimSuffix(path, ".md")
+
+		items = append(items, RSSItem{
+			Title:       title,
+			Link:        url,
+			Description: description,
+			PubDate:     modTime.UTC().Format(time.RFC1123),
+			GUID:        url,
+		})
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Sort by pub date descending (newest first)
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].PubDate > items[j].PubDate
+	})
+
+	return items, nil
+}
+
+func extractTitleFromMarkdown(path, markdown string) string {
+	// Try to get title from first H1 heading
+	lines := strings.Split(markdown, "\n")
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "# ") {
+			candidate := strings.TrimSpace(strings.TrimPrefix(trimmed, "# "))
+			if candidate != "" {
+				return candidate
+			}
+		}
+	}
+	// Fallback to filename without extension
+	return strings.TrimSuffix(filepath.Base(path), ".md")
+}
+
+func extractDescriptionFromMarkdown(markdown string) string {
+	// Parse markdown to extract first paragraph
+	extensions := parser.CommonExtensions
+	p := parser.NewWithExtensions(extensions)
+	doc := p.Parse([]byte(markdown))
+
+	var firstParagraph strings.Builder
+	found := false
+
+	ast.WalkFunc(doc, func(node ast.Node, entering bool) ast.WalkStatus {
+		if !entering || found {
+			return ast.GoToNext
+		}
+
+		switch n := node.(type) {
+		case *ast.Paragraph:
+			text := extractNodeText(n)
+			if text != "" {
+				firstParagraph.WriteString(text)
+				found = true
+				return ast.SkipChildren
+			}
+		}
+		return ast.GoToNext
+	})
+
+	desc := normalizeWhitespace(firstParagraph.String())
+	if len(desc) > 300 {
+		desc = desc[:300] + "..."
+	}
+	return desc
 }
 
 func (h *handler) getCachedSearchJSON(snapshot searchSnapshot) ([]byte, bool) {
