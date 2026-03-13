@@ -136,10 +136,10 @@
 
         // Only show theme selector on index page
         if (isIndexPage()) {
-            const main = document.querySelector('main');
-            if (main) {
+            const utilityBar = document.querySelector('.utility-bar');
+            if (utilityBar) {
                 const selector = createThemeSelector();
-                main.insertBefore(selector, main.firstChild);
+                utilityBar.appendChild(selector);
             }
         }
 

@@ -362,12 +362,33 @@ img {
   font-size: var(--font-size-small);
 }
 
+/* Utility bar for RSS and theme selector */
+.utility-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* RSS Feed Link */
+.rss-feed-link {
+  font-size: var(--font-size-smaller);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.rss-feed-link:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
 /* Theme selector */
 .theme-selector {
-  position: fixed;
-  top: var(--spacing-md);
-  right: var(--spacing-md);
-  z-index: 1000;
+  display: flex;
+  align-items: center;
 }
 
 .theme-selector label {
@@ -403,12 +424,6 @@ img {
   h2 { font-size: 1.5rem; }
   h3 { font-size: 1.25rem; }
   h4 { font-size: 1.125rem; }
-
-  .theme-selector {
-    position: static;
-    margin-bottom: var(--spacing-md);
-    text-align: right;
-  }
 }
 
 /* Print styles */

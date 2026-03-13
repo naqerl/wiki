@@ -29,9 +29,13 @@
         })();
     </script>
     <script src="/static/js/theme-switcher.js"></script>
+    <link rel="alternate" type="application/rss+xml" title="Wiki RSS Feed" href="{{ .BaseURL }}/rss.xml">
 </head>
 <body>
     <main>
+        <div class="utility-bar">
+            <a href="{{ .BaseURL }}/rss.xml" class="rss-feed-link" aria-label="RSS Feed">RSS</a>
+        </div>
         <header>
             <h1>{{ .Title }}</h1>
         </header>
