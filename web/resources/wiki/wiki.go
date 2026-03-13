@@ -704,5 +704,27 @@ func (h *handler) buildTree(dir string) (*TreeNode, error) {
                 parent.Children = append(parent.Children, node)
         }
 
+        // Prune empty directories - only keep directories that contain files
+        root.Children = pruneEmptyDirs(root.Children)
+
         return root, nil
+}
+
+// pruneEmptyDirs recursively removes directories with no files
+func pruneEmptyDirs(nodes []*TreeNode) []*TreeNode {
+        result := make([]*TreeNode, 0, len(nodes))
+        for _, node := range nodes {
+                if node.IsDir {
+                        // Recursively prune children first
+                        node.Children = pruneEmptyDirs(node.Children)
+                        // Only keep this directory if it has children (files or non-empty subdirs)
+                        if len(node.Children) > 0 {
+                                result = append(result, node)
+                        }
+                } else {
+                        // Keep all files
+                        result = append(result, node)
+                }
+        }
+        return result
 }
