@@ -277,9 +277,9 @@ code {
 pre {
   font-family: var(--font-family-mono);
   background-color: var(--color-pre-bg);
-  border: 1px solid var(--color-pre-border);
+  border: none;
   border-radius: var(--border-radius);
-  padding: var(--spacing-md);
+  padding: 0;
   overflow-x: auto;
   margin: 0 0 var(--spacing-md) 0;
 }

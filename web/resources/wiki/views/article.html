@@ -15,20 +15,30 @@
                 'sepia': 'theme-sepia.css',
                 'retro': 'theme-retro.css'
             };
+            const DARK_THEMES = ['default-dark', 'retro'];
             const STORAGE_KEY = 'wiki-theme';
             let themeFile = THEMES['default-light'];
+            let isDark = false;
             try {
                 const stored = localStorage.getItem(STORAGE_KEY);
                 if (stored && THEMES[stored]) {
                     themeFile = THEMES[stored];
+                    isDark = DARK_THEMES.includes(stored);
                 } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
                     themeFile = THEMES['default-dark'];
+                    isDark = true;
                 }
             } catch (e) {}
             document.write('<link id="wiki-theme-css" rel="stylesheet" href="/static/css/' + themeFile + '">');
+            // Load appropriate highlight.js theme
+            const hljsTheme = isDark ? 'monokai' : 'github';
+            document.write('<link id="hljs-theme-css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/' + hljsTheme + '.min.css">');
+            // Override highlight.js background to use theme colors
+            document.write('<style>.hljs{background:transparent}</style>');
         })();
     </script>
     <script src="/static/js/theme-switcher.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script type="module">
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
         
@@ -58,6 +68,9 @@
             el.parentElement.outerHTML = `<pre class="mermaid">${el.textContent}</pre>`;
         });
         mermaid.init();
+        
+        // Initialize syntax highlighting
+        hljs.highlightAll();
     </script>
 </head>
 <body>
