@@ -256,6 +256,26 @@ input[type="search"]::placeholder {
   margin: var(--spacing-sm) 0 0 0;
 }
 
+section[aria-label="Search"] p[aria-live="polite"] {
+  margin: 0;
+}
+
+#search-message:empty {
+  display: none;
+}
+
+#search-index-attribution,
+#search-index-attribution a,
+#search-index-attribution a:visited,
+#search-index-attribution a:hover {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
 /* Mark (search highlights) */
 mark {
   background-color: var(--color-mark-bg);

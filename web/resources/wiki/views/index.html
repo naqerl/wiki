@@ -52,7 +52,10 @@
         </header>
         <section aria-label="Search">
             <input id="search-input" type="search" placeholder="search..." autocomplete="off">
-            <p id="search-index-info" aria-live="polite"></p>
+            <p aria-live="polite">
+                <span id="search-index-info"></span>
+                <span id="search-index-attribution"> by <a href="https://lunrjs.com/">Lunr.js</a></span>
+            </p>
             <p id="search-message" aria-live="polite"></p>
         </section>
         <nav aria-label="Wiki articles">
