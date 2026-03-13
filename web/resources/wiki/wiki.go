@@ -121,6 +121,12 @@ func (h *handler) article(w http.ResponseWriter, r *http.Request) {
                 return
         }
 
+        // Get file modification time
+        var lastModified time.Time
+        if stat, err := fs.Stat(h.content, path); err == nil {
+                lastModified = stat.ModTime()
+        }
+
         // Convert markdown to HTML
         html := templates.RenderMarkdown(content)
         headings := extractHeadingsFromHTML(string(html))
@@ -130,9 +136,10 @@ func (h *handler) article(w http.ResponseWriter, r *http.Request) {
         displayName := strings.TrimSuffix(path, ".md")
 
         data := map[string]any{
-                "Title":       displayName,
-                "Content":     html,
-                "HeadingTree": headingTree,
+                "Title":        displayName,
+                "Content":      html,
+                "HeadingTree":  headingTree,
+                "LastModified": lastModified,
         }
         h.t.RenderHTTP(w, r, "article", data)
 }
