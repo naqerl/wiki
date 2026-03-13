@@ -17,9 +17,13 @@ func main() {
 	flag.Parse()
 
 	content := os.DirFS(contentPath)
+	baseURL := os.Getenv("WIKI_BASE_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost:" + port
+	}
 
 	mux := http.NewServeMux()
-	mux.Handle("/", wiki.InitMux(content))
+	mux.Handle("/", wiki.InitMux(content, baseURL))
 
 	slog.Info("Server starting", "port", port, "content", contentPath)
 	if err := http.ListenAndServe(":"+port, mux); err != nil {
