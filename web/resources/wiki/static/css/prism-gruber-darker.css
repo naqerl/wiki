@@ -1,0 +1,139 @@
+/*
+ * Gruber Darker Theme for Prism.js
+ * Based on: https://github.com/rexim/gruber-darker-theme
+ */
+
+code[class*="language-"],
+pre[class*="language-"] {
+  color: #e4e4ef;
+  background: none;
+  font-family: var(--font-family-mono, Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace);
+  font-size: 0.875rem;
+  text-align: left;
+  white-space: pre;
+  word-spacing: normal;
+  word-break: normal;
+  word-wrap: normal;
+  line-height: 1.5;
+  tab-size: 4;
+  hyphens: none;
+}
+
+/* Code blocks */
+pre[class*="language-"] {
+  padding: 1em;
+  margin: 0.5em 0;
+  overflow: auto;
+  border-radius: 0.3em;
+}
+
+:not(pre) > code[class*="language-"],
+pre[class*="language-"] {
+  background: #181818;
+}
+
+/* Inline code */
+:not(pre) > code[class*="language-"] {
+  padding: 0.1em;
+  border-radius: 0.3em;
+  white-space: normal;
+}
+
+/* Tokens */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #cc8c3c;
+  font-style: italic;
+}
+
+.token.punctuation {
+  color: #e4e4ef;
+}
+
+.token.namespace {
+  opacity: 0.7;
+}
+
+.token.property,
+.token.tag,
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol,
+.token.deleted {
+  color: #9e95c7;
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted {
+  color: #73c936;
+}
+
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+  color: #e4e4ef;
+}
+
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+  color: #ffdd33;
+}
+
+.token.function,
+.token.class-name {
+  color: #96a6c8;
+}
+
+.token.regex,
+.token.important,
+.token.variable {
+  color: #73c936;
+}
+
+.token.important,
+.token.bold {
+  font-weight: bold;
+}
+
+.token.italic {
+  font-style: italic;
+}
+
+.token.entity {
+  cursor: help;
+}
+
+/* Lisp-specific */
+.language-lisp .token.keyword,
+.language-elisp .token.keyword,
+.language-emacs-lisp .token.keyword {
+  color: #ffdd33;
+}
+
+.language-lisp .token.function,
+.language-elisp .token.function,
+.language-emacs-lisp .token.function {
+  color: #96a6c8;
+}
+
+.language-lisp .token.string,
+.language-elisp .token.string,
+.language-emacs-lisp .token.string {
+  color: #73c936;
+}
+
+.language-lisp .token.comment,
+.language-elisp .token.comment,
+.language-emacs-lisp .token.comment {
+  color: #cc8c3c;
+}
