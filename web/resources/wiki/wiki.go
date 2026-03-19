@@ -226,7 +226,7 @@ func (h *handler) article(w http.ResponseWriter, r *http.Request) {
 		description = siteDescription
 	}
 
-	html := templates.RenderMarkdown(content)
+	html, refs := templates.RenderMarkdown(content)
 	headings := extractHeadingsFromHTML(string(html))
 	headingTree := buildHeadingTree(headings)
 	canonicalPath := h.articlePath(path)
@@ -263,6 +263,7 @@ func (h *handler) article(w http.ResponseWriter, r *http.Request) {
 		"StructuredData": structuredData,
 		"Breadcrumbs":    breadcrumbs,
 		"Related":        related,
+		"References":     refs,
 	}
 	h.t.RenderHTTP(w, r, "article", data)
 }

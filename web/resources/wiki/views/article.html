@@ -110,6 +110,18 @@
         <article>
             {{ .Content }}
         </article>
+        {{ if .References }}
+        <aside aria-label="References">
+            <h2>References</h2>
+            <ul>
+                {{ range .References }}
+                <li>
+                    <a href="{{ .URL }}" target="_blank" rel="noopener noreferrer">{{ .Text }}</a>
+                </li>
+                {{ end }}
+            </ul>
+        </aside>
+        {{ end }}
         {{ if .Related }}
         <aside aria-label="Related articles">
             <h2>More to read</h2>
