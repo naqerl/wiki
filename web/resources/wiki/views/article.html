@@ -20,6 +20,7 @@
     <meta name="twitter:description" content="{{ .Description }}">
     <link id="wiki-base-css" rel="stylesheet" href="/static/css/base.css">
     <link id="prism-theme-css" rel="stylesheet" href="/static/css/prism-gruber-darker.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/naqerl/wifuframe@4d3b0fb/src/wifuframe.css">
     <script>
         // Load theme immediately to prevent flash
         (function() {
@@ -91,6 +92,16 @@
             el.parentElement.outerHTML = `<pre class="mermaid">${el.textContent}</pre>`;
         });
         mermaid.init();
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/naqerl/wifuframe@f25be10/src/wifuframe.js"></script>
+    <script>
+        // Initialize wifuframe after Prism has processed code blocks
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.Wifuframe) {
+                Wifuframe.init('code.language-wifuframe');
+            }
+        });
     </script>
 </head>
 <body>
