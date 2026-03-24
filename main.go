@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"wiki/web/resources/wiki"
+	"github.com/naqerl/wiki/web/resources/wiki"
 )
 
 func main() {

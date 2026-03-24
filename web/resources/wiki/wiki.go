@@ -21,7 +21,7 @@ import (
 	"github.com/gomarkdown/markdown/ast"
 	"github.com/gomarkdown/markdown/parser"
 
-	"wiki/web/templates"
+	"github.com/naqerl/wiki/web/templates"
 )
 
 // RSSFeed represents an RSS 2.0 feed

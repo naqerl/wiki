@@ -1,4 +1,4 @@
-module wiki
+module github.com/naqerl/wiki
 
 go 1.23
 
