@@ -2,6 +2,13 @@
 
 Small self-hosted wiki for Markdown files.
 
+## Install
+
+```bash
+go install github.com/naqerl/wiki@latest
+wiki -port=3232 -content=/path/to/the/docs/
+```
+
 ## Features
 
 - Markdown-based articles (`.md` files from a content directory)
