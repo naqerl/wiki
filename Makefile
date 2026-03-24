@@ -1,7 +1,7 @@
 .PHONY: vet install-tools run build install clean
 
 BIN_NAME ?= wiki
-BUILD_OUT ?= /tmp/$(BIN_NAME)
+BUILD_OUT ?= $(BIN_NAME)
 INSTALL_BIN_DIR ?= /usr/bin
 SERVICE_NAME ?= wiki
 SYSTEMD_UNIT_DIR ?= /etc/systemd/system
